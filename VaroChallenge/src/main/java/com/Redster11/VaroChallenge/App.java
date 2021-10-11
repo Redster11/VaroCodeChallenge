@@ -4,13 +4,15 @@ public class App {
   public static void main(String[] args) {
     System.out.println("Hello World!");
     try{// create our mysql database connection
-      String myDriver = "org.gjt.mm.mysql.Driver";
-      String myUrl = "jdbc:mysql://localhost/test";
+      String myDriver = "com.mysql.cj.jdbc.Driver";
+      String myUrl = "jdbc:mysql://localhost/mydb";
       Class.forName(myDriver);
-      Connection conn = DriverManager.getConnection(myUrl, "root", "");
+      Connection conn = DriverManager.getConnection(myUrl, "root", "Root");
        // our SQL SELECT query. 
       // if you only need a few columns, specify them by name instead of using "*"
-      String query = "SELECT * FROM users";
+      String query = "SELECT P.*, A.*, AP.Active " +
+      "FROM Address AS A, People AS P, PeopleToAddress AS AP" +
+      "WHERE ((P.UserID=AP.UserID) And (AP.AddressID=A.AddressID) And (P.Email='kkirtland123@gmail.com'));";
 
       // create the java statement
       Statement st = conn.createStatement();
@@ -21,15 +23,13 @@ public class App {
       // iterate through the java resultset
       while (rs.next())
       {
-        int id = rs.getInt("id");
-        String firstName = rs.getString("first_name");
-        String lastName = rs.getString("last_name");
-        Date dateCreated = rs.getDate("date_created");
-        boolean isAdmin = rs.getBoolean("is_admin");
-        int numPoints = rs.getInt("num_points");
+        String firstName = rs.getString("FirstName");
+        String lastName = rs.getString("LastName");
+        Date dateCreated = rs.getDate("date");
+        Boolean active = rs.getBoolean("Active");
         
         // print the results
-        System.out.format("%s, %s, %s, %s, %s, %s\n", id, firstName, lastName, dateCreated, isAdmin, numPoints);
+        System.out.format("%s, %s, %s, %s\n", firstName, lastName, dateCreated, active);
       }
       st.close();
     }
