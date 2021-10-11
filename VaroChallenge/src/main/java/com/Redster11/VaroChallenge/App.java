@@ -1,7 +1,8 @@
 package com.Redster11.VaroChallenge;
 import java.sql.*;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
 import java.util.Vector;
+
 
 public class App {
   /**
@@ -18,6 +19,9 @@ public class App {
       //grab all users
       Vector<String[]> listUsers = new Vector<String[]>();
       listUsers.addAll(ListUsers(conn));
+      //Deletes User
+      DeleteUser(conn, "45");
+      //Adds User
       UpsertUser(conn, "45", "Red", "Gibbler", "Red.Gib@gmail.com", "8", "1234 Test St", "Suite 123", "Los Angeles", "CA", "90001", "45");
       //grab user based on UserID
       Vector<String[]> UserDetails = new Vector<String[]>();
@@ -39,18 +43,19 @@ public class App {
   }
   public static void UpsertUser(Connection conn, String UserID, String FirstName, String LastName, String Email, String AddressID, String Line1, String Line2, String City, String State, String ZIP, String ptaID) throws SQLException{
     Statement st = conn.createStatement();
+    System.out.println(!IsUserExists(conn, Email));
     if(!IsUserExists(conn, Email)){ // Does not exist
       String Insert = "INSERT INTO people VALUES ('"+UserID+"', '"+FirstName+"', '"+LastName+"', '"+Email+"', false)";
       // execute the query, and get a java resultset
       st.executeUpdate(Insert);
-      DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-      Insert = "INSERT INTO address VALUES ("+AddressID+", " +Line1+", "+ Line2 +", "+ City+", "+State+", "+ZIP+", "+ dtf.toString()+")";
+      Insert = "INSERT INTO address VALUES (\""+AddressID+"\", \"" +Line1+"\", \""+ Line2 +"\", \""+ City+"\", \""+State+"\", \""+ZIP+"\", \""+ LocalDate.now()+"\")";
       st.executeUpdate(Insert);
       Insert = "INSERT INTO peopletoaddress VALUES (" + ptaID +", "+ AddressID +", "+ UserID +", 1)";
       st.executeUpdate(Insert);
     }
     else{
-      String Update = "UPDATE People SET Firstname = " + FirstName + ", LastName = " + LastName + ", Email = " + Email + ", Deleted = falase WHERE UserID = "+UserID+")";
+      System.out.println("We here");
+      String Update = "UPDATE People SET FirstName = \"" + FirstName + "\", LastName = \"" + LastName + "\", Email = \"" + Email + "\" WHERE UserID = \""+ UserID + "\"";
       st.executeUpdate(Update);
       UpdateAddress(conn, UserID, AddressID, Line1, Line2, City, State, ZIP, ptaID);
     }
@@ -64,11 +69,10 @@ public class App {
 
     // execute the query, and get a java resultset
     ResultSet rs = st.executeQuery(query);
-
     Boolean exists = false;
-      rs = st.executeQuery(query);
       while (rs.next())
       {
+        System.out.println(rs.getString("FirstName"));
         exists = true;
         break;
       }
@@ -102,7 +106,7 @@ public class App {
   public static Vector<String[]> GetUserDetails(Connection conn, String UserID) throws SQLException{
     Statement st = conn.createStatement();
     Vector<String[]> Details = new Vector<String[]>(); 
-    String query1 = "SELECT DISTINCT people.* FROM people WHERE people.UserID = " + UserID +";";
+    String query1 = "SELECT DISTINCT people.* FROM people WHERE people.UserID = \"" + UserID +"\";";
     ResultSet rs = st.executeQuery(query1);
     while (rs.next())
     {
@@ -113,7 +117,7 @@ public class App {
       data[3] = rs.getString("Deleted");
       Details.add(data);
     }
-    String query2 = "SELECT address.*, peopletoaddress.active FROM address, peopletoaddress WHERE address.addressID = peopletoaddress.addressID AND peopletoaddress.UserID = " + UserID +";";
+    String query2 = "SELECT address.*, peopletoaddress.active FROM address, peopletoaddress WHERE address.addressID = peopletoaddress.addressID AND peopletoaddress.UserID = \"" + UserID +"\";";
     rs = st.executeQuery(query2);
     while (rs.next())
     {
@@ -133,25 +137,28 @@ public class App {
   }
   public static void UpdateAddress(Connection conn, String UserID, String AddressID, String Line1, String Line2, String City, String State, String ZIP, String ptaID) throws SQLException{
     Statement st = conn.createStatement();
-    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    String Insert = "INSERT INTO address VALUES ("+AddressID+", " +Line1+", "+ Line2 +", "+ City+", "+State+", "+ZIP+", "+ dtf.toString()+")";
-    st.executeUpdate(Insert);
+    System.out.println(LocalDate.now());
+    //String Insert = "INSERT INTO address VALUES ("+AddressID+", " +Line1+", "+ Line2 +", "+ City+", "+State+", "+ZIP+", "+ LocalDate.now()+")";
+    //st.executeUpdate(Insert);
     Vector<String[]> UserDetails = new Vector<String[]>();
     UserDetails.addAll(GetUserDetails(conn, UserID));
     for(int i = 1; i < UserDetails.size(); i++){
       if(UserDetails.get(i)[7] == "true"){
-        String Update = "UPDATE peopletoaddress SET active = 0 WHERE UserID = " + UserID + " AND AddressID = " + AddressID;
+        String Update = "UPDATE peopletoaddress SET active = 0 WHERE UserID = \"" + UserID + "\" AND AddressID = \"" + AddressID + "\"";
         st.executeUpdate(Update);
       }
     }
-    Insert = "INSERT INTO peopletoaddress VALUES (" + ptaID +", "+ AddressID +", "+ UserID +", 1)";
+    String Insert = "INSERT INTO peopletoaddress VALUES (\"" + ptaID +"\", \""+ AddressID +"\", \""+ UserID +"\", 1)";
     st.executeUpdate(Insert);
     st.close();
   }
   public static void DeleteUser(Connection conn, String UserID)throws SQLException{
     Statement st = conn.createStatement();
-    String Update = "UPDATE people SET deleted = 1 WHERE UserID = " + UserID;
-    st.executeUpdate(Update);
+    Vector<String[]> Details = GetUserDetails(conn, UserID);
+    if(Details.size() != 0){
+      String Update = "UPDATE people SET deleted = 1 WHERE UserID = \"" + UserID + "\"";
+      st.executeUpdate(Update);
+    }
     st.close();
   }
 }
